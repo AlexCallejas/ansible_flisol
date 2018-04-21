@@ -1,0 +1,63 @@
+---
+# Playbook for setting up pool machine
+- name: Register and update OS packages
+  hosts: webservers
+  remote_user: root
+
+  tasks:
+    - name: Include the variables file
+      include_vars: vars/variables.yml
+
+    - name: Register pool machine
+      redhat_subscription:
+        state: present
+        username: rhn-support-acalleja
+        password: "{{ password }}"
+        pool: "Employee SKU"
+
+    - name: Disable all repos
+      shell: "subscription-manager repos --disable=*"
+
+    - name: Enable RHEL7 and RHSCL repos
+      shell: "subscription-manager repos --enable rhel-7-server-rpms --enable rhel-server-rhscl-7-rpms"
+
+    - name: Install the required packages
+      yum:
+        name: "{{ item }}"
+        state: latest
+      with_items:
+        - sysstat
+        - sos
+        - net-tools
+        - cockpit
+
+    - name: Upgrade all packages
+      yum:
+        name: "*"
+        state: latest
+      register: systemupgrade
+
+    - set_fact:
+        real_ansible_host: "{{ ansible_host }}"
+
+    - name: Restart pool machine
+      shell: sleep 3 && shutdown -r +1 "Ansible packages upgrade triggered"
+      async: 1
+      poll: 0
+      ignore_errors: true
+
+    - name: Wait for hosts to go down
+      local_action:
+        wait_for host={{ real_ansible_host }}
+        port=22 state=absent delay=1 timeout=120
+      become: false
+
+    - name: Wait for hosts to come back up
+      local_action:
+        wait_for host={{ real_ansible_host }}
+        port=22 state=started delay=30 timeout=120
+      become: false
+
+    - name: Show host 
+      debug:
+        msg: "{{ ansible_host }}"

@@ -1,0 +1,30 @@
+---
+# tasks file for lbserver
+- name: install haproxy
+  yum: name=haproxy state=latest
+  tags: haproxy
+
+- name: install firewalld package
+  yum: name=firewalld state=latest
+  tags: haproxy
+
+- name: configure haproxy
+  template: src=haproxy.cfg.j2 dest=/etc/haproxy/haproxy.cfg
+  notify: reload haproxy
+  tags: haproxy
+
+- name: start haproxy
+  service: name=haproxy state=started
+  tags: haproxy
+
+- name: start and enable firewalld daemon
+  service: name=firewalld state=started enabled=true
+  tags: haproxy
+
+- name: open haproxy firewalld port
+  firewalld:
+    port: 80/tcp
+    immediate: true
+    permanent: true
+    state: enabled
+  tags: haproxy

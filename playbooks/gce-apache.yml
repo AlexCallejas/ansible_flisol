@@ -1,0 +1,53 @@
+---
+- name: Create gce webserver instance
+  hosts: localhost
+  connection: local
+  gather_facts: True
+
+  vars:
+    service_account_email: rootzilopochtli@flisol2018-201620.iam.gserviceaccount.com
+    credentials_file: /root/wkdir/FLISoL2018-51f71b5912a8.json
+    project_id: flisol2018-201620
+    instance_names: web1,web2,web3
+    machine_type: n1-standard-1
+    image: centos-7
+
+  tasks:
+  - name: Create an Instance based on image {{ image }}  
+    gce:
+      instance_names: "{{ instance_names }}"
+      machine_type: "{{ machine_type }}"
+      image: "{{ image }}"
+      state: present
+      preemptible: true
+      tags: http-server,https-server
+      service_account_email: "{{ service_account_email }}"
+      credentials_file: "{{ credentials_file }}"
+      project_id: "{{ project_id }}"
+      metadata: '{"sshKeys":"dark_axl:ssh-dss AAAAB3NzaC1kc3MAAACBAIekdtSkLlzfYlcsi3DAA+wRXZp87Fb/wtKljEBYjG9lV2kgv7JV6T+dV4WeHETvU0y9yhpKAmW7qX0csRbQgwFuOg8H7CejqqCgGY2Fxx3sqedYdrFiSrTrsgyBuNZoWTA6xHXThsU1zBUKWAi99KmPFnmaiA6AJA0q/8jE7ZB5AAAAFQCZkPTu99NDKfhGPRJIDQwo3F3HuwAAAIB5UTPCGBldYCr1G0G8XYXYKSndL9YqQMcF95074/Vjy1t++NFy+NCXW5DxYhCS+RuxMeOofn5qxaQcyb1KFfr1TbYStde/U7FX/MAZ2bs2hpu0M7ferLsOy1QzcRZ7IWlm6AzYuroHpvSJgEa0O8AGhEEsnApPFavL0Xx5cVwyDwAAAIBR8ibi8C5r2h3GkA4CWk7ypQvdPGczapoRhuyOJ55spNa7zI2aN5zrx29rYA+pCLO+8EaE+8/HzijKJbRGT0U/aLtfGZDqFE40KLxIKe5OJpjQ0/tnKCzXwhPahyGqxN33g5CFLvuwVL4h1WV/ayLwSOWQco0Vkdwe9wqPcZj0zA== root@hp-dl360pg8-1.gsslab.rdu2.redhat.com"}'
+    register: gce
+
+  - name: Save host data within a Group
+    add_host:
+      hostname: "{{ item.public_ip }}"
+      groupname: gce_instances_temp
+    with_items: "{{ gce.instance_data }}"
+
+  - name: Wait for SSH to come up
+    wait_for: host={{ item.public_ip }} port=22 delay=10 timeout=60
+    with_items: "{{ gce.instance_data }}"
+
+  - name: setting fact
+    set_fact: host={{ item.public_ip }}
+    with_items: "{{ gce.instance_data }}"
+
+- name: Configure instance post-creation
+  hosts: gce_instances_temp
+  gather_facts: True
+  remote_user: dark_axl
+  become: yes
+  become_method: sudo
+
+  roles:
+
+    - myapache

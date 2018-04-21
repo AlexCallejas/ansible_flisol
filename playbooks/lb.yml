@@ -1,0 +1,5 @@
+---
+- name: setup haproxy on lbserver
+  hosts: lbserver
+  roles:
+    - role: lbserver

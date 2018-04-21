@@ -1,0 +1,22 @@
+---
+- name: Playbook test to create gce instance
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  vars:
+    service_account_email: rootzilopochtli@flisol2018-201620.iam.gserviceaccount.com
+    credentials_file: /root/wkdir/FLISoL2018-51f71b5912a8.json
+    project_id: flisol2018-201620
+    machine_type: n1-standard-1
+    image: centos-7
+
+  tasks:
+    - name: Launch instances
+      gce:
+        instance_names: dev
+        machine_type: "{{ machine_type }}"
+        image: "{{ image }}"
+        service_account_email: "{{ service_account_email }}"
+        credentials_file: "{{ credentials_file }}"
+        project_id: "{{ project_id }}"

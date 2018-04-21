@@ -1,0 +1,26 @@
+---
+- name: Playbook to create gce load balancing instance
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  vars:
+    service_account_email: rootzilopochtli@flisol2018-201620.iam.gserviceaccount.com
+    credentials_file: /root/wkdir/FLISoL2018-51f71b5912a8.json
+    project_id: flisol2018-201620
+    machine_type: n1-standard-1
+    image: centos-7
+
+  tasks:
+    - name: Create gce load balancer
+      local_action:
+        module: gce_lb
+        name: lbserver
+        region: us-central1
+        members: ['us-central1-a/web1','us-central1-a/web2','us-central1-a/web3']
+        httphealthcheck_name: hc
+        httphealthcheck_port: 80
+        httphealthcheck_path: "/"
+        service_account_email: "{{ service_account_email }}"
+        credentials_file: "{{ credentials_file }}"
+        project_id: "{{ project_id }}"

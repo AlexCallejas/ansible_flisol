@@ -1,0 +1,7 @@
+---
+- name: setup apache on webservers
+  hosts: webservers
+  roles:
+    - role: myapache
+      apache_enable: true
+
